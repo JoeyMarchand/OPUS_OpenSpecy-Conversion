@@ -4,3 +4,4 @@ This is a preliminary code that is subjected to change. Feel free to email at Ma
 https://github.com/wincowgerDEV/OpenSpecy-package/blob/main/README.md
 This will be an open source conversion upon completion. 
 
+The algorithm iteratively refines the baseline by fitting a polynomial and comparing the standard deviation of the residuals (dev_curr) with the previous iteration (dev_prev). It stops when the change in the residual deviation is less than 5%.
