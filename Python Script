@@ -2,34 +2,34 @@ import pandas as pd
 import numpy as np
 from scipy import interpolate
 import matplotlib.pyplot as plt
-from spectral import open_image
+import spectral
+import ipywidgets as widgets
+from IPython.display import display
 
-# Load the HDR file
+# Load the HDR and PARMS file (Ensure the .img file is within the same directory)
 img = spectral.open_image('Filename.hdr')
-
-
-# Define the coordinates (this can be changed dynamically as needed) For an example currently this
-x, y = 901, 62 
-# Extract the spectrum at the given (x, y) coordinates
-spectrum = img[y, x, :] 
+max_wavelength, min_wavelength, data_points = parameters_extraction('Filename.parms')
 
 # Function to extract parameters from the .parms file
 def parameters_extraction(parmsfile_path):
     max_wavelength, min_wavelength, data_points = None, None, None
     with open(parmsfile_path, 'r') as file:
         for line in file:
-            if 'FXV=' in line: #Max Wavelength - 3900
-                min_wavelength = float(line.split('=')[1].strip()) #Calling Min to swap around the x axis band unraveling
-            elif 'LXV=' in line: #Min Wavelength - 1300
-                max_wavelength = float(line.split('=')[1].strip()) #Calling Max to swap around the x axis ordering from band unraveling 
-            elif 'NPT=' in line: #Number of X - Data points
+            if 'FXV=' in line:  # Max Wavelength - 3900
+                min_wavelength = float(line.split('=')[1].strip())  # Calling Min to swap around the x axis
+            elif 'LXV=' in line:  # Min Wavelength - 1300
+                max_wavelength = float(line.split('=')[1].strip())  # Calling Max to swap around the x axis ordering
+            elif 'NPT=' in line:  # Number of X - Data points
                 data_points = int(line.split('=')[1].strip())
                 
     return max_wavelength, min_wavelength, data_points
-
-# Load .parms file to extract wavelengths and number of data points
-max_wavelength, min_wavelength, data_points = parameters_extraction('/Users/joey/Desktop/St_Baja/SJS_W bottom 1_5 100um TOP.parms')
 wavelengths = np.linspace(min_wavelength, max_wavelength, data_points)
+
+# Function to extract spectrum for specific x, y coordinates
+def get_spectrum(x, y):
+    spectrum = img[y, x, :]
+    intensity_values = spectrum.flatten()
+    return wavelengths, intensity_values
 
 # Function to calculate the first derivative
 def calculate_derivative(x, y):
@@ -51,7 +51,7 @@ def evaluate_flatness(x, derivative, region1=(3900, 3800), region2=(2600, 2300))
     return flatness1 + flatness2
 
 # Define the baseline correction function
-def baseline_correction_poly(x, y, degree=6, max_iter=50):
+def baseline_correction_poly(x, y, degree=1, max_iter=50):
     dev_prev = 0
     first_iter = True
     criteria_met = False
@@ -61,7 +61,7 @@ def baseline_correction_poly(x, y, degree=6, max_iter=50):
     original_y = y.copy()
     
     best_flatness = float('inf')
-    best_corrected_spectrum = y.copy()
+    best_corrected_spectrum = y.copy()  # This will store the final baseline-corrected spectrum
     best_degree = degree  # Initialize with the given degree
     
     # Loop over different polynomial degrees
@@ -112,15 +112,27 @@ def baseline_correction_poly(x, y, degree=6, max_iter=50):
     
     return best_corrected_spectrum
 
-# Apply baseline correction
-corrected_spectrum = baseline_correction_poly(wavelengths, intensity_values)
-normalized_intensity = corrected_spectrum/ max(corrected_spectrum)
+# Function to update the plot based on slider values
+def update_plot(x, y):
+    wavelengths, intensity_values = get_spectrum(x, y)
+    corrected_spectrum = baseline_correction_poly(wavelengths, intensity_values)
+    normalized_intensity = corrected_spectrum / max(corrected_spectrum)
 
-# Plot the corrected spectrum
-plt.figure(figsize=(14, 3))
-plt.plot(wavelengths, normalized_intensity, color="black")
-plt.xlabel("Wavelength (cm-1)")
-plt.ylabel("Corrected Intensity")
-plt.title(f"Baseline Corrected Spectrum at Pixel ({x}, {y})")
-plt.gca().invert_xaxis()  # Flipping the x-axis visually
-plt.show()
+    # Plot the corrected spectrum
+    plt.figure(figsize=(14, 3))
+    plt.plot(wavelengths, normalized_intensity, color="black")
+    plt.xlabel("Wavelength (cm-1)")
+    plt.ylabel("Corrected Intensity")
+    plt.title(f"Baseline Corrected Spectrum at Pixel ({x}, {y})")
+    plt.gca().invert_xaxis()  # Flipping the x-axis visually
+    plt.show()
+
+# Create interactive sliders for x and y coordinates
+x_slider = widgets.IntSlider(value=1360, min=0, max=img.shape[1]-1, step=1, description='X Coordinate:')
+y_slider = widgets.IntSlider(value=80, min=0, max=img.shape[0]-1, step=1, description='Y Coordinate:')
+
+# Use interactive function to update the plot when sliders change
+interactive_plot = widgets.interactive(update_plot, x=x_slider, y=y_slider)
+
+# Display the interactive dashboard
+display(interactive_plot)
