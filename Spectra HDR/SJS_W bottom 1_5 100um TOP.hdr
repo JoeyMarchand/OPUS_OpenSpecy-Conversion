@@ -1,0 +1,12 @@
+ENVI
+description = {
+  00000014.0 
+}
+samples = 2592
+lines   = 480
+bands   = 1642
+header offset = 0
+file type = ENVI Standard
+data type = 4
+interleave = bip
+byte order = 0
