@@ -8,7 +8,6 @@ This is a preliminary code that is subjected to change. Email March322@d.umn.edu
 ## TODO
 
 - [x] Single File Implementation 
-- [] SQL Server Setup
-- [] Python SQLAlchemy Integration
+- [x] SQL Server Setup (Swapped Solution to SQLite)
 - [] massOspec.py Output Dump/SQL Register
 - [] Scale
